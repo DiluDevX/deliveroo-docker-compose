@@ -1,0 +1,81 @@
+services:
+
+# Main API Gateway
+  api-gateway:
+    build:
+      context: ./deliveroo-clone-api
+      dockerfile: Dockerfile
+    container_name: deliveroo-api
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DOPPLER_TOKEN: ${DOPPLER_MAIN_API_TOKEN}
+      AUTH_SERVICE_URL: http://auth-service:4001
+      MAIL_SERVICE_URL: http://mail-service:3000
+    ports:
+      - "4000:4000"
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      mail-service:
+        condition: service_healthy
+    networks:
+      - deliveroo-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: ["doppler", "run", "--project", "deliveroo-clone-api", "--config", "dev", "--", "npm", "start"]
+
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./deliveroo-auth-service
+      dockerfile: Dockerfile
+    container_name: deliveroo-auth
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      DOPPLER_TOKEN: ${DOPPLER_AUTH_TOKEN}
+    ports:
+      - "4001:4001"  # Map container port to host port
+    networks:
+      - deliveroo-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:4001/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: ["doppler", "run", "--project", "deliveroo-auth-service", "--config", "dev", "--", "npm", "start"]
+
+  # Mail Service
+  mail-service:
+    build:
+      context: ./deliveroo-mail-service
+      dockerfile: Dockerfile
+    container_name: deliveroo-mail
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DOPPLER_TOKEN: ${DOPPLER_MAIL_TOKEN}
+    ports:
+      - "3000:3000"
+    networks:
+      - deliveroo-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    command: ["doppler", "run", "--project", "deliveroo-mail-service", "--config", "dev", "--", "npm", "start"]
+
+# Define networks
+# Why? So all containers can communicate with each other
+networks:
+  deliveroo-network:
+    driver: bridge  # Default Docker network driver
