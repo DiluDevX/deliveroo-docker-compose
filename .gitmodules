@@ -7,3 +7,4 @@
 [submodule "deliveroo-clone-api"]
 	path = deliveroo-clone-api
 	url = https://github.com/DiluDevX/deliveroo-clone-api.git
+	branch = develop
